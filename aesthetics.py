@@ -28,7 +28,12 @@ def set_aesthetics():
 
 
 def set_colors(members, colors=None):
+    num_members = len(members)
     if colors is None:
-        colors = ["#FA8879" "#96C8DF", "#BCE4CF", "#F9E031", "#C3D3D1"]
+        if num_members == 5:
+            colors = ["#FA8879", "#96C8DF", "#BCE4CF", "#F9E031", "#C3D3D1"]
+        else:
+            pal = sns.color_palette("Set3", n_colors=num_members)
+            colors = pal.as_hex()
     color_dict = dict(zip(members, colors))
     return color_dict
