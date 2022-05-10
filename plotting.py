@@ -1,9 +1,10 @@
-from tarfile import FIFOTYPE
+from typing_extensions import Self
 import pandas as pd
 import networkx as nx
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+import numpy as np
 import warnings
 
 from aesthetics import set_emoji_font
@@ -149,7 +150,11 @@ class MessengerReport:
             fig.savefig(f"results/{self.folder_name}/volume_history.png", dpi=300)
 
     def sample_messages_with_emoji(
-        self, emoji, sample_num=None, threshold=None, print_examples=True
+        self,
+        emoji,
+        sample_num=None,
+        threshold=None,
+        print_examples=True,
     ):
         """Sample messages with a minimum number of a certain emoji"""
         df = self.data.copy()
@@ -158,9 +163,11 @@ class MessengerReport:
         )
 
         if threshold is None:
-            threshold = len(self.members) - 1
+            threshold = min(len(self.members) - 1, df.num_reaction.max())
         if sample_num is None:
-            sample_num = 2 * len(self.members)
+            sample_num = min(
+                2 * len(self.members), len(df["num_reaction"] >= threshold)
+            )
 
         # Print out or return messages
         texts = []
@@ -183,14 +190,57 @@ class MessengerReport:
                 print(text)
             else:
                 texts.append(text)
+        if not print_examples:
+            return texts
 
-    def plot_emoji_received(self, emoji, threshold=1, return_fig=False):
+    def plot_sample_messages(self, emoji, threshold=1, return_fig=False):
+        """Print sample messages to a figure"""
+        texts = self.sample_messages_with_emoji(
+            emoji, threshold=threshold, sample_num=12, print_examples=False
+        )
+
+        fig, ax = plt.subplots(figsize=(12, 9))
+        ax.set_axis_off()
+        for example, v_place in zip(texts, np.linspace(0.9, 0.1, 10)):
+            text_part = example.split("received ")[0]
+            ax.text(
+                0.15,
+                v_place,
+                text_part,
+                transform=fig.transFigure,
+                size=12,
+            )
+        ax.text(
+            0.5,
+            1.2,
+            f": Message examples with at least {threshold} reactions",
+            size=16,
+            ha="left",
+        )
+        ax.text(
+            0.4,
+            1.2,
+            f"{emoji}",
+            size=16,
+            ha="left",
+            fontproperties=self.emoji_font_prop,
+        )
+        if return_fig:
+            return fig
+        else:
+            fig.savefig(
+                f"results/{self.folder_name}/message_samples_{threshold}_{emoji}.png",
+                dpi=300,
+            )
+
+    def plot_emoji_received(self, emoji, threshold=1, return_fig=False, ax=None):
         """Find how much each member received of a certain emoji"""
         # Prepare data
         df = self.data.copy()
         df["num_emoji_reaction"] = df[self.reaction_columns].apply(
             lambda x: list(x).count(emoji), axis=1
         )
+        threshold = min(threshold, df.num_emoji_reaction.max())
         df_filtered = df.loc[
             df["num_emoji_reaction"] >= threshold, ["sender_name", "content"]
         ]
@@ -203,21 +253,35 @@ class MessengerReport:
         plot_data.sort_values("content", ascending=False, inplace=True)
 
         # Create plot
-        fig, ax = plt.subplots(figsize=(7, 4))
-        sns.barplot(
-            data=plot_data,
-            y="sender_name",
-            x="content",
-            orient="h",
-            palette=plot_data.colors,
-            saturation=1,
-        )
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(7, 4))
+            sns.barplot(
+                data=plot_data,
+                y="sender_name",
+                x="content",
+                orient="h",
+                palette=plot_data.colors,
+                saturation=1,
+                ax=ax,
+            )
+        else:
+            fig = sns.barplot(
+                data=plot_data,
+                y="sender_name",
+                x="content",
+                orient="h",
+                palette=plot_data.colors,
+                saturation=1,
+                ax=ax,
+            )
         ax.set_xlabel(
-            f"Number of messages with at least {threshold} {emoji} reactions received",
-            size=self.fontsize,
-            fontproperties=self.emoji_font_prop,
+            f"Number of messages",
         )
         ax.set_ylabel("")
+        ax.set_title(
+            f"Number of messages with {threshold} or more reactions",
+            size=self.fontsize,
+        )
         plt.tight_layout()
 
         if return_fig:
@@ -368,11 +432,32 @@ class MessengerReport:
             node_color=[self.color_dict[m.replace("\n", " ")] for m in N.nodes],
         )
 
-        plt.suptitle(f"Network of {emoji} reactions")
+        plt.title(
+            f"Network of reactions",
+        )
+        plt.suptitle(
+            f"{emoji}",
+            fontproperties=self.emoji_font_prop,
+        )
         if return_fig:
             return fig
         else:
             fig.savefig(f"results/{self.folder_name}/network_of_{emoji}", dpi=300)
+
+    def plot_emoji_received_summary(self, emoji, return_fig=False):
+        fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+        self.plot_emoji_received(emoji, threshold=1, return_fig=True, ax=axes[0])
+        self.plot_emoji_received(
+            emoji, threshold=self.num_members - 1, return_fig=True, ax=axes[1]
+        )
+        axes[1].text(
+            -4, -0.7, f"{emoji}", fontproperties=self.emoji_font_prop, ha="left"
+        )
+        plt.tight_layout()
+        if return_fig:
+            return fig
+        else:
+            fig.savefig(f"results/{self.folder_name}/reaction_summary_{emoji}", dpi=300)
 
     def pdf_report(self, emojis=None):
         """
@@ -387,15 +472,17 @@ class MessengerReport:
         plots.append(self.plot_message_volume(return_fig=True))
         plots.append(self.plot_daily_use(return_fig=True))
         plots.append(self.plot_historic_use(return_fig=True))
-        # self.sample_messages_with_emoji()
         plots.append(self.plot_reactions(return_fig=True))
         for emoji in emojis:
-            plots.append(self.plot_emoji_received(emoji, threshold=1, return_fig=True))
+            # Number of messages with emojis received for different thresholds
+            plots.append(self.plot_emoji_received_summary(emoji, return_fig=True))
+            # Sample messages
             plots.append(
-                self.plot_emoji_received(
+                self.plot_sample_messages(
                     emoji, threshold=self.num_members - 1, return_fig=True
                 )
             )
+            # Network of emoji reaction
             plots.append(self.plot_reaction_network(emoji, return_fig=True))
 
         # Create pdf
@@ -409,13 +496,14 @@ class MessengerReport:
         plt.text(
             0.1,
             0.5,
-            f"{self.folder_name}\nmessenger report",
-            transform=fig.transFigure,
+            f"{self.folder_name}\nMESSENGER REPORT",
+            # transform=fig.transFigure,
             size=self.fontsize * 2,
             fontweight="heavy",
         )
         plt.subplots_adjust(wspace=0.4, hspace=0.4)
-        report_pdf.savefig(fig)
+        plots.insert(0, fig)
+        # report_pdf.savefig(fig)
 
         # Add plots
         for plot in plots:
