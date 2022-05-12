@@ -5,6 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
+import os
 import warnings
 
 from aesthetics import set_emoji_font
@@ -22,6 +23,8 @@ class MessengerReport:
             c for c in self.data.columns if c.startswith("reaction_")
         ]
         self.emoji_font_prop = set_emoji_font()
+        if not os.path.exists(f"results/{folder_name}"):
+            os.mkdir(f"results/{folder_name}")
 
     def plot_message_volume(self, return_fig=False):
         """Show number of messages and number of words sent per member"""
@@ -137,8 +140,10 @@ class MessengerReport:
         )
         ax.set_title("Messaging volume over time", size=13)
         ax.set_xlabel("Date", size=13)
-        x_labels = sorted([m[0:4] + "/" + m[4:] for m in plot_data.month.unique()])
-        ax.set_xticks(range(len(x_labels)))
+        k = int(len(plot_data) / 100)
+        ticks = ax.get_xticks()[::k]
+        x_labels = sorted([m[0:4] + "/" + m[4:] for m in plot_data.month.unique()[::k]])
+        ax.set_xticks(ticks)
         ax.set_xticklabels(labels=x_labels, rotation=45)
         ax.set_ylabel("Number of messages", size=13)
         plt.legend(title="Sender")
@@ -166,7 +171,13 @@ class MessengerReport:
             threshold = min(len(self.members) - 1, df.num_reaction.max())
         if sample_num is None:
             sample_num = min(
-                2 * len(self.members), len(df["num_reaction"] >= threshold)
+                2 * len(self.members),
+                sum((df["num_reaction"] >= threshold) & (df["content"] != "")),
+            )
+        else:
+            sample_num = min(
+                sample_num,
+                sum((df["num_reaction"] >= threshold) & (df["content"] != "")),
             )
 
         # Print out or return messages
@@ -244,13 +255,17 @@ class MessengerReport:
         df_filtered = df.loc[
             df["num_emoji_reaction"] >= threshold, ["sender_name", "content"]
         ]
-        plot_data = (
-            df_filtered.groupby("sender_name")["content"]
-            .count()[self.members]
-            .reset_index()
+        plot_dict = df_filtered.groupby("sender_name")["content"].count().to_dict()
+        missing_rows = {
+            member: 0 for member in self.members if member not in plot_dict.keys()
+        }
+        plot_dict.update(missing_rows)
+        plot_data = pd.DataFrame(
+            {"sender_name": plot_dict.keys(), "count": plot_dict.values()}
         )
         plot_data["colors"] = plot_data.sender_name.map(self.color_dict)
-        plot_data.sort_values("content", ascending=False, inplace=True)
+        plot_data.sort_values("count", ascending=False, inplace=True)
+        plot_data["count"] = plot_data["count"].astype(int)
 
         # Create plot
         if ax is None:
@@ -258,7 +273,7 @@ class MessengerReport:
             sns.barplot(
                 data=plot_data,
                 y="sender_name",
-                x="content",
+                x="count",
                 orient="h",
                 palette=plot_data.colors,
                 saturation=1,
@@ -268,7 +283,7 @@ class MessengerReport:
             fig = sns.barplot(
                 data=plot_data,
                 y="sender_name",
-                x="content",
+                x="count",
                 orient="h",
                 palette=plot_data.colors,
                 saturation=1,
@@ -480,6 +495,11 @@ class MessengerReport:
             plots.append(
                 self.plot_sample_messages(
                     emoji, threshold=self.num_members - 1, return_fig=True
+                )
+            )
+            plots.append(
+                self.plot_sample_messages(
+                    emoji, threshold=self.num_members - 2, return_fig=True
                 )
             )
             # Network of emoji reaction
