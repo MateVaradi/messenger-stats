@@ -9,6 +9,7 @@ import os
 import warnings
 
 from aesthetics import set_emoji_font
+from utils import *
 
 
 class MessengerReport:
@@ -189,8 +190,12 @@ class MessengerReport:
         sample = df_to_sample.sample(sample_num)
         for _, row in sample.iterrows():
             reactions_received = row[self.reaction_columns].sum()
+            message = row["content"]
+            if message.count(" ") > 20:
+                # Split message into more rows if too long
+                message = nth_repl_all(message, " ", "\n", 20)
             text = (
-                row["content"]
+                message
                 + "\n  sent by "
                 + row["sender_name"]
                 + ", received "
@@ -465,9 +470,7 @@ class MessengerReport:
         self.plot_emoji_received(
             emoji, threshold=self.num_members - 1, return_fig=True, ax=axes[1]
         )
-        axes[1].text(
-            -4, -0.7, f"{emoji}", fontproperties=self.emoji_font_prop, ha="left"
-        )
+        plt.suptitle(f"{emoji}", fontproperties=self.emoji_font_prop, ha="left")
         plt.tight_layout()
         if return_fig:
             return fig
