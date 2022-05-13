@@ -1,4 +1,3 @@
-from typing_extensions import Self
 import pandas as pd
 import networkx as nx
 import seaborn as sns
@@ -504,6 +503,7 @@ class MessengerReport:
                 self.plot_sample_messages(
                     emoji, threshold=self.num_members - 2, return_fig=True
                 )
+            )
             # Network of emoji reaction
             plots.append(self.plot_reaction_network(emoji, return_fig=True))
 
