@@ -49,22 +49,29 @@ def clean_data(df, exclude_members=None):
     df["content"] = df["content"].str.lower()
 
     # Keep only text data
+    cols_to_drop = list(
+        set(df.columns).intersection(
+            set(
+                [
+                    "timestamp_ms",
+                    "gifs",
+                    "is_unsent",
+                    "photos",
+                    "type",
+                    "videos",
+                    "audio_files",
+                    "sticker.uri",
+                    "call_duration",
+                    "share.link",
+                    "share.share_text",
+                    "users",
+                    "files",
+                ]
+            )
+        )
+    )
     df.drop(
-        columns=[
-            "timestamp_ms",
-            "gifs",
-            "is_unsent",
-            "photos",
-            "type",
-            "videos",
-            "audio_files",
-            "sticker.uri",
-            "call_duration",
-            "share.link",
-            "share.share_text",
-            "users",
-            "files",
-        ],
+        columns=cols_to_drop,
         inplace=True,
     )
 
@@ -113,10 +120,10 @@ def parse_reactions(df):
     return df
 
 
-def prepare_data(path):
+def prepare_data(path, exclude_members=None):
     """
     Reads in json message files from specified folder and returns cleaned dataframe.
     """
-    df = clean_data(load_all_messages(path))
+    df = clean_data(load_all_messages(path), exclude_members=exclude_members)
     df = parse_reactions(df)
     return df
