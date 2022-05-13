@@ -1,6 +1,17 @@
 # Messenger Stats
 Analyze your Messenger group chat data
 
+## Overview
+
+This repository contains code to report some interesting statistics about group conversations. The report currently includes the following statistics:
+- messaging volume per user (in terms of the number of messages sent and the number of words sent),
+- average daily usage statistics per user (i.e. average number of messages sent per hour of the day),
+- historic usage statistics per user (i.e. number of messages sent per month),
+- most commonly sent and received emoji reactions per user,
+- number of messages with a minimum number of reactions of a certain emoji per user,
+- sample messages with a minimum number of reactions of a certain emoji,
+- network of reactions of a certain emoji. The width of a directed edge from member *a* to *b* represent the relative proportion of member *a*'s reactions that are sent to member *b*.
+
 ## Usage
 
 ### Basic usage
@@ -11,7 +22,7 @@ Analyze your Messenger group chat data
 
 `python analyze.py "my_chat"`
 
-The resulting report will be in `results/<my_chat>/`.
+The resulting pdf report will be in `results/<my_chat>/`.
 
 
 ### Advanced usage
