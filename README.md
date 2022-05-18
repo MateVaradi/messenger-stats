@@ -1,6 +1,8 @@
 # Messenger Stats
 Analyze your Messenger group chat data
 
+![Examples](https://github.com/MateVaradi/messenger-stats/blob/main/resources/examples.png?raw=true)
+
 ## Overview
 
 This repository contains code to report some interesting statistics about group conversations. The report currently includes the following statistics:
