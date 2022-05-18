@@ -27,6 +27,6 @@ The resulting pdf report will be in `results/<my_chat>/`.
 
 ### Advanced usage
 
-[This notebook](https://github.com/MateVaradi/messenger-stats/blob/main/notebooks/analysis.ipynb) runs the plots from the pdf report one by one, but running them in Jupytter allows for some ad-hoc changes to the plots.
+[This notebook](https://github.com/MateVaradi/messenger-stats/blob/main/notebooks/analysis.ipynb) runs the plots from the pdf report one by one. Running them in Jupyter allows for some ad-hoc changes to the plots.
 
 Alternatively, one can modify the plotting functions in `plotting.py` to achieve custom changes to the output.
