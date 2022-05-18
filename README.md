@@ -20,9 +20,7 @@ This repository contains code to report some interesting statistics about group 
 1. Clone this repo.
 2. Download your Messenger conversations from Facebook. [Here](https://www.zapptales.com/en/download-facebook-messenger-chat-history-how-to/) is how to do it.
 3. Among the downloaded files, find the group chat you want to analyze. Move the `.json` files of this conversation to `data/<my_chat>/`
-4. Run the default pdf report yourself
-
-`python analyze.py "my_chat"`
+4. Run the default pdf report yourself: `python analyze.py "my_chat"`
 
 The resulting pdf report will be in `results/<my_chat>/`.
 
