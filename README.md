@@ -1,4 +1,4 @@
-# Messenger Stats
+# Messenger Insights
 Analyze your Messenger group chat data
 
 ![Examples](https://github.com/MateVaradi/messenger-stats/blob/main/resources/examples.png?raw=true)
